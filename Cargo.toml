@@ -1,0 +1,12 @@
+[package]
+name          = "cachedir"
+version       = "0.1.0"
+authors       = ["Lilian A. Moraru <lilian.moraru90@gmail.com>"]
+license       = "MIT/Apache-2.0"
+readme        = "README.md"
+homepage      = "https://github.com/lilianmoraru/cachedir"
+repository    = "https://github.com/lilianmoraru/cachedir"
+documentation = "https://docs.rs/cachedir"
+categories    = ["cache", "filesystem"]
+
+description   = "A library for managing cache directories"
