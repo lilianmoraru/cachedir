@@ -1,22 +1,18 @@
-use std::path::PathBuf;
+use std::path::{ Path, PathBuf };
 use std::io::{ self, Error, ErrorKind };
 
-#[inline]
-pub fn user_cache_supported() -> bool {
-    false
-}
+use super::{ CacheDirImpl, CacheDirOperations, create_dir };
 
-#[inline]
-pub fn system_cache_supported() -> bool {
-    false
-}
+impl CacheDirOperations for CacheDirImpl {
+    fn create_user_cache_dir(dir_name: &Path)   -> io::Result<PathBuf> {
+        create_dir(&[])
+    }
 
-pub fn user_cache_path() -> io::Result<PathBuf> {
-    Err(Error::new(ErrorKind::NotFound,
-                   "cachedir does not support this OS"))
-}
+    fn create_system_cache_dir(dir_name: &Path) -> io::Result<PathBuf> {
+        create_dir(&[])
+    }
 
-pub fn system_cache_path() -> io::Result<PathBuf> {
-    Err(Error::new(ErrorKind::NotFound,
-                   "cachedir does not support this OS"))
+    fn create_tmp_cache_dir(dir_name: &Path)    -> io::Result<PathBuf> {
+        create_dir(&[])
+    }
 }

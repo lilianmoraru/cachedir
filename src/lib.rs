@@ -2,7 +2,7 @@ use std::path;
 use std::io;
 use std::ffi::OsStr;
 
-// Contains os-agnostic functions to create cache directories
+// Contains the os-agnostic `create_cache_dir` function
 mod sys_cache;
 
 pub struct CacheDir {
@@ -53,6 +53,11 @@ impl<'a> CacheDirConfig<'a> {
     }
 
     pub fn get_cache_dir(&self) -> io::Result<CacheDir> {
-        unimplemented!()
+        use sys_cache::create_cache_dir;
+
+        match create_cache_dir(self.dir_name, self.system_fallback, self.tmp_fallback) {
+            Ok(path_buf) => Ok( CacheDir { path: path_buf } ),
+            Err(err)     => Err(err)
+        }
     }
 }
