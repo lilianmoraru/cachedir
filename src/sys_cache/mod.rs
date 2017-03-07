@@ -5,7 +5,7 @@ use std::fs;
 pub fn create_cache_dir(dir_name:             &path::Path,
                         with_system_fallback: bool,
                         with_tmp_fallback:    bool)
-                        -> io::Result<path::PathBuf>
+    -> io::Result<path::PathBuf>
 {
     let _ = with_system_fallback;
     let _ = with_tmp_fallback;
@@ -44,6 +44,8 @@ trait CacheDirOperations {
 // Common function shared between all implementations of the CacheDirOperations trait
 fn create_dir_helper(dirs: &[path::PathBuf], path: &path::Path) -> io::Result<path::PathBuf> {
     // Sadly, we don't have something like `static_assert`
+    debug_assert!(dirs.is_empty(),
+                  "Code-logic error: the slice of directories should not be empty");
     if dirs.is_empty() {
         return Err(io::Error::new(io::ErrorKind::NotFound,
                                   "Could not create the cache directory"));
@@ -53,14 +55,27 @@ fn create_dir_helper(dirs: &[path::PathBuf], path: &path::Path) -> io::Result<pa
     // The `PermissionDenied` error will be returned with this buffer only if all the attempts fail
     let mut attempted_paths_error = String::new();
     for parent_cache_dir in dirs {
-        let final_cache_path = &parent_cache_dir.join(path);
-        if let Err(err) = fs::create_dir_all(&final_cache_path) {
+        if !parent_cache_dir.exists() {
             attempted_paths_error.push_str(
-                &format!("\n[{:?}]: Failed to create cache directory: {}",
-                         err.kind(),
-                         final_cache_path.display()));
+                &format!("\n[NotFound]: Parent cache directory does not exist: {}",
+                         parent_cache_dir.display()));
         } else {
-            return Ok(path::PathBuf::from(final_cache_path));
+            if !parent_cache_dir.is_dir() {
+                attempted_paths_error.push_str(
+                    &format!("\n[AlreadyExists]: Parent cache path is not a directory: {}",
+                             parent_cache_dir.display())
+                );
+            } else {
+                let final_cache_path = &parent_cache_dir.join(path);
+                if let Err(err) = fs::create_dir_all(&final_cache_path) {
+                    attempted_paths_error.push_str(
+                        &format!("\n[{:?}]: Failed to create the cache directory: {}",
+                                 err.kind(),
+                                 final_cache_path.display()));
+                } else {
+                    return Ok(path::PathBuf::from(final_cache_path));
+                }
+            }
         }
     }
 

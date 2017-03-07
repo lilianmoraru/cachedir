@@ -18,8 +18,8 @@ impl CacheDirOperations for CacheDirImpl {
         let cache_dir = { home_dir.unwrap() }.join(".cache");
         if let Err(err) = fs::create_dir_all(&cache_dir) {
             return Err(io::Error::new(err.kind(), format!("{}\n\
-                                                  [User Cache]: Failed to create parent cache directory",
-                                                  err.description())));
+                                                  [User Cache]: Failed to create the parent \
+                                                  cache directory", err.description())));
         }
 
         super::create_dir_helper(&[cache_dir], &dir_name)
@@ -32,6 +32,6 @@ impl CacheDirOperations for CacheDirImpl {
     }
 
     fn create_tmp_cache_dir(dir_name: &Path)    -> io::Result<PathBuf> {
-        super::create_dir_helper(&[], &dir_name)
+        super::create_dir_helper(&[env::temp_dir()], &dir_name)
     }
 }
