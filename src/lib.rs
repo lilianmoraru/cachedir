@@ -15,52 +15,67 @@ impl CacheDir {
     }
 
     pub fn into_path_buf(self) -> path::PathBuf {
-        // Note that we take the ownership,
-        // so we won't be able to call `as_path` later and panic
         self.path
     }
 }
 
-pub struct CacheDirConfig<'a> {
-    dir_name:        &'a path::Path,
-    system_fallback: bool,
-    tmp_fallback:    bool,
+pub struct CacheDirConfig<'a, 'b: 'a> {
+    cache_name:      &'a path::Path,
+    user_parent_dir: Option<&'b path::Path>,
+    user_cache:      bool,
+    system_cache:    bool,
+    tmp_cache:       bool,
+    memory_cache:    bool,
 }
 
-impl<'a> CacheDirConfig<'a> {
-    pub fn new<S: AsRef<OsStr> + ?Sized>(dir_name: &'a S) -> CacheDirConfig<'a> {
+impl<'a, 'b> CacheDirConfig<'a, 'b> {
+    pub fn new<S: AsRef<OsStr> + ?Sized>(cache_name: &'a S) -> CacheDirConfig<'a, 'b> {
         CacheDirConfig {
-            dir_name: path::Path::new(dir_name),
-            system_fallback: false,
-            tmp_fallback: false
+            cache_name:      path::Path::new(cache_name),
+            user_parent_dir: None,
+            user_cache:      false,
+            system_cache:    false,
+            tmp_cache:       false,
+            memory_cache:    false,
         }
     }
 
-//    Will be added later
-//    pub fn parent_dir(&mut self, dir: &path::Path) -> &mut CacheDirConfig<'a> {
-//
-//    }
-
-    pub fn system_fallback(&mut self, value: bool) -> &mut CacheDirConfig<'a> {
-        self.system_fallback = value;
+    pub fn user_parent_dir(&mut self,
+                           dir_path: Option<&'b path::Path>) -> &mut CacheDirConfig<'a, 'b> {
+        self.user_parent_dir = dir_path;
         self
     }
 
-    pub fn tmp_fallback(&mut self, value: bool) -> &mut CacheDirConfig<'a> {
-        self.tmp_fallback = value;
+    pub fn user_cache(&mut self, value: bool)   -> &mut CacheDirConfig<'a, 'b> {
+        self.user_cache = value;
         self
     }
 
-    pub fn with_all_fallbacks(&mut self) -> &mut CacheDirConfig<'a> {
-        self.system_fallback = true;
-        self.tmp_fallback = true;
+    pub fn system_cache(&mut self, value: bool) -> &mut CacheDirConfig<'a, 'b> {
+        self.system_cache = value;
+        self
+    }
+
+    pub fn tmp_cache(&mut self, value: bool)    -> &mut CacheDirConfig<'a, 'b> {
+        self.tmp_cache = value;
+        self
+    }
+
+    pub fn memory_cache(&mut self, value: bool) -> &mut CacheDirConfig<'a, 'b> {
+        self.memory_cache = value;
+        self
+    }
+
+    pub fn try_all_caches(&mut self) -> &mut CacheDirConfig<'a, 'b> {
+        self.user_cache   = true;
+        self.system_cache = true;
+        self.tmp_cache    = true;
+        self.memory_cache = true;
         self
     }
 
     pub fn get_cache_dir(&self) -> io::Result<CacheDir> {
-        use sys_cache::create_cache_dir;
-
-        match create_cache_dir(self.dir_name, self.system_fallback, self.tmp_fallback) {
+        match sys_cache::create_cache_dir(&self) {
             Ok(path_buf) => Ok( CacheDir { path: path_buf } ),
             Err(err)     => Err(err)
         }

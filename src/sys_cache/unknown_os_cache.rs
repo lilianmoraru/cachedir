@@ -4,7 +4,8 @@ use std::io;
 use super::{ CacheDirImpl, CacheDirOperations };
 
 impl CacheDirOperations for CacheDirImpl {
-    fn create_user_cache_dir(_: &Path)   -> io::Result<PathBuf> {
+    fn create_user_cache_dir(_: &Path,
+                             _:  Option<&Path>) -> io::Result<PathBuf> {
         Err(io::Error::new(io::ErrorKind::NotFound,
                            "[User Cache]: This OS is not supported"))
     }
@@ -17,5 +18,10 @@ impl CacheDirOperations for CacheDirImpl {
     fn create_tmp_cache_dir(_: &Path)    -> io::Result<PathBuf> {
         Err(io::Error::new(io::ErrorKind::NotFound,
                            "[Tmp Cache]: This OS is not supported"))
+    }
+
+    fn create_memory_cache_dir(_: &Path) -> io::Result<PathBuf> {
+        Err(io::Error::new(io::ErrorKind::NotFound,
+                           "[Memory Cache]: This OS is not supported"))
     }
 }

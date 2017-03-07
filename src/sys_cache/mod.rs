@@ -2,15 +2,17 @@ use std::io;
 use std::path;
 use std::fs;
 
-pub fn create_cache_dir(dir_name:             &path::Path,
-                        with_system_fallback: bool,
-                        with_tmp_fallback:    bool)
+pub fn create_cache_dir(cache_config: &super::CacheDirConfig)
     -> io::Result<path::PathBuf>
 {
-    let _ = with_system_fallback;
-    let _ = with_tmp_fallback;
+    let default_config = !cache_config.user_cache
+                         && !cache_config.system_cache
+                         && !cache_config.tmp_cache
+                         && !cache_config.memory_cache;
 
-    CacheDirImpl::create_user_cache_dir(&dir_name)
+    let user_cache = if default_config { true } else { cache_config.user_cache };
+
+    CacheDirImpl::create_user_cache_dir(&cache_config.cache_name, cache_config.user_parent_dir)
 }
 
 // ===== Private =====
@@ -35,16 +37,17 @@ struct CacheDirImpl;
 
 // The functions that should be implemented by all os-specific modules
 trait CacheDirOperations {
-    fn create_user_cache_dir(dir_name: &path::Path)   -> io::Result<path::PathBuf>;
-    fn create_system_cache_dir(dir_name: &path::Path) -> io::Result<path::PathBuf>;
-    fn create_tmp_cache_dir(dir_name: &path::Path)    -> io::Result<path::PathBuf>;
-//    fn create_ram_cache_dir(dir_name: &path::Path)    -> io::Result<path::PathBuf>; // Later
+    fn create_user_cache_dir(cache_name: &path::Path,
+                             parent_dir: Option<&path::Path>) -> io::Result<path::PathBuf>;
+    fn create_system_cache_dir(cache_name: &path::Path) -> io::Result<path::PathBuf>;
+    fn create_tmp_cache_dir(cache_name: &path::Path)    -> io::Result<path::PathBuf>;
+    fn create_memory_cache_dir(cache_name: &path::Path) -> io::Result<path::PathBuf>;
 }
 
 // Common function shared between all implementations of the CacheDirOperations trait
 fn create_dir_helper(dirs: &[path::PathBuf], path: &path::Path) -> io::Result<path::PathBuf> {
     // Sadly, we don't have something like `static_assert`
-    debug_assert!(dirs.is_empty(),
+    debug_assert!(!dirs.is_empty(),
                   "Code-logic error: the slice of directories should not be empty");
     if dirs.is_empty() {
         return Err(io::Error::new(io::ErrorKind::NotFound,

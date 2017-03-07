@@ -7,13 +7,18 @@ use std::env;
 use super::{ CacheDirImpl, CacheDirOperations };
 
 impl CacheDirOperations for CacheDirImpl {
-    fn create_user_cache_dir(dir_name: &Path)   -> io::Result<PathBuf> {
+    fn create_user_cache_dir(cache_name: &Path,
+                             parent_dir: Option<&Path>)   -> io::Result<PathBuf> {
         // Lets see if we can get the `$HOME` path - it could be missing
         // in a bare-bones `Linux` container or in `Emscripten` - as examples
         let cache_dir: PathBuf;
-        let home_dir = env::home_dir();
+        let home_dir = if parent_dir.is_none() {
+            env::home_dir()
+        } else {
+            Some(PathBuf::from(&parent_dir.unwrap()))
+        };
 
-        if let None = home_dir {
+        if home_dir.is_none() {
             // On `Emscripten` we have rights to create files and directories anywhere,
             // so we'll still try to create the cache directory without having `$HOME`
             if cfg!(not(target_os = "emscripten")) {
@@ -24,7 +29,11 @@ impl CacheDirOperations for CacheDirImpl {
                 cache_dir = PathBuf::from("/var/cache");
             }
         } else {
-            cache_dir = { home_dir.unwrap() }.join(".cache");
+            cache_dir = if parent_dir.is_none() {
+                { home_dir.unwrap() }.join(".cache")
+            } else {
+                { home_dir.unwrap() }
+            };
         }
 
         // Lets make sure that the parent cache directory exists
@@ -34,16 +43,21 @@ impl CacheDirOperations for CacheDirImpl {
                                                   cache directory", err.description())));
         }
 
-        super::create_dir_helper(&[cache_dir], &dir_name)
+        super::create_dir_helper(&[cache_dir], &cache_name)
     }
 
-    fn create_system_cache_dir(dir_name: &Path) -> io::Result<PathBuf> {
-        super::create_dir_helper(&[PathBuf::from("/var/cache")], &dir_name)
+    fn create_system_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {
+        super::create_dir_helper(&[PathBuf::from("/var/cache")], &cache_name)
     }
 
-    fn create_tmp_cache_dir(dir_name: &Path)    -> io::Result<PathBuf> {
-        // We try `/dev/tmp` first because the directory is persistent between system restarts
+    fn create_tmp_cache_dir(cache_name: &Path)    -> io::Result<PathBuf> {
+        // We try `/var/tmp` first because the directory is persistent between system restarts
         super::create_dir_helper(&[PathBuf::from("/var/tmp"), env::temp_dir()],
-                                 &dir_name)
+                                 &cache_name)
+    }
+
+    fn create_memory_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {
+        super::create_dir_helper(&[PathBuf::from("/dev/shm")],
+                                 &cache_name)
     }
 }
