@@ -36,6 +36,11 @@ impl<'a> CacheDirConfig<'a> {
         }
     }
 
+//    Will be added later
+//    pub fn parent_dir(&mut self, dir: &path::Path) -> &mut CacheDirConfig<'a> {
+//
+//    }
+
     pub fn system_fallback(&mut self, value: bool) -> &mut CacheDirConfig<'a> {
         self.system_fallback = value;
         self
