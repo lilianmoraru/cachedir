@@ -29,8 +29,16 @@ impl CacheDirOperations for CacheDirImpl {
                 cache_dir = PathBuf::from("/var/cache");
             }
         } else {
+            // We choose between `$HOME` or the user-passed path stored in `parent_dir`.
+            // If we use `$HOME`, then we want to create the cache in:
+            // - `$HOME/.cache` on all Unix systems except `macOS`
+            // - `$HOME/Lirary/Caches` on `macOS`
             cache_dir = if parent_dir.is_none() {
-                { home_dir.unwrap() }.join(".cache")
+                if cfg!(not(target_os = "macos")) {
+                    { home_dir.unwrap() }.join(".cache")
+                } else {
+                    { home_dir.unwrap() }.join("Library/Caches")
+                }
             } else {
                 { home_dir.unwrap() }
             };
@@ -47,7 +55,13 @@ impl CacheDirOperations for CacheDirImpl {
     }
 
     fn create_system_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {
-        super::create_dir_helper(&[PathBuf::from("/var/cache")], &cache_name)
+        if cfg!(not(target_os = "macos")) {
+            super::create_dir_helper(&[PathBuf::from("/var/cache")],
+                                     &cache_name)
+        } else {
+            super::create_dir_helper(&[PathBuf::from("/Library/Caches")],
+                                     &cache_name)
+        }
     }
 
     fn create_tmp_cache_dir(cache_name: &Path)    -> io::Result<PathBuf> {
@@ -57,7 +71,12 @@ impl CacheDirOperations for CacheDirImpl {
     }
 
     fn create_memory_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {
-        super::create_dir_helper(&[PathBuf::from("/dev/shm")],
-                                 &cache_name)
+        if cfg!(target_os = "linux") {
+            super::create_dir_helper(&[PathBuf::from("/dev/shm"), PathBuf::from("/run/shm")],
+                                     &cache_name)
+        } else {
+            Err(io::Error::new(io::ErrorKind::NotFound,
+                               "[Memory Cache]: Memory caches are not supported on this OS"))
+        }
     }
 }
