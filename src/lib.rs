@@ -19,7 +19,7 @@ impl CacheDir {
     }
 }
 
-pub struct CacheDirConfig<'a, 'b: 'a> {
+pub struct CacheDirConfig<'a, 'b> {
     cache_name:      &'a path::Path,
     user_parent_dir: Option<&'b path::Path>,
     user_cache:      bool,
