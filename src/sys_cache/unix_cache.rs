@@ -9,48 +9,49 @@ use super::{ CacheDirImpl, CacheDirOperations };
 impl CacheDirOperations for CacheDirImpl {
     fn create_app_cache_dir(cache_name:    &Path,
                             app_cache_dir: &Path) -> io::Result<PathBuf> {
-        unimplemented!()
+        let app_cache_dir = PathBuf::from(app_cache_dir);
+        if let Err(err) = fs::create_dir_all(&app_cache_dir) {
+            return Err(io::Error::new(err.kind(), format!("{}\n\
+                                                  [Application Cache]: Failed to create the parent \
+                                                  cache directory", err.description())));
+        }
+
+        super::create_dir_helper(&[app_cache_dir], &cache_name)
     }
 
     fn create_user_cache_dir(cache_name: &Path)   -> io::Result<PathBuf> {
-        unimplemented!();
-        /*
         // Lets see if we can get the `$HOME` path - it could be missing
         // in a bare-bones `Linux` container or in `Emscripten` - as examples
-        let cache_dir: PathBuf;
-        let home_dir = if parent_dir.is_none() {
-            env::home_dir()
-        } else {
-            Some(PathBuf::from(&parent_dir.unwrap()))
-        };
+        let cache_dir = env::home_dir()
+                            .and_then(|path| {
+                                if path.as_os_str().is_empty() {
+                                    None
+                                } else {
+                                    if cfg!(not(target_os = "macos")) {
+                                        Some(path.join(".cache"))
+                                    } else {
+                                        Some(path.join("Library/Caches"))
+                                    }
+                                }
+                            })
+                            .or_else(|| {
+                                // On `Emscripten` we have rights to create files
+                                // and directories anywhere, so we'll still try to create
+                                // the cache directory without having `$HOME`
+                                if cfg!(target_os = "emscripten") {
+                                    Some(PathBuf::from("/var/cache"))
+                                } else {
+                                    None
+                                }
+                            });
 
-        if home_dir.is_none() {
-            // On `Emscripten` we have rights to create files and directories anywhere,
-            // so we'll still try to create the cache directory without having `$HOME`
-            if cfg!(not(target_os = "emscripten")) {
-                return Err(io::Error::new(io::ErrorKind::NotFound,
-                                          "[User Cache]: Could not obtain user's home directory"));
-            } else {
-                { home_dir }; // Nobody should use `home_dir` from this point
-                cache_dir = PathBuf::from("/var/cache");
-            }
-        } else {
-            // We choose between `$HOME` or the user-passed path stored in `parent_dir`.
-            // If we use `$HOME`, then we want to create the cache in:
-            // - `$HOME/.cache` on all Unix systems except `macOS`
-            // - `$HOME/Lirary/Caches` on `macOS`
-            cache_dir = if parent_dir.is_none() {
-                if cfg!(not(target_os = "macos")) {
-                    { home_dir.unwrap() }.join(".cache")
-                } else {
-                    { home_dir.unwrap() }.join("Library/Caches")
-                }
-            } else {
-                { home_dir.unwrap() }
-            };
+        if cache_dir.is_none() {
+            return Err(io::Error::new(io::ErrorKind::NotFound,
+                                      "[User Cache]: Could not obtain user's home directory"));
         }
 
         // Lets make sure that the parent cache directory exists
+        let cache_dir = cache_dir.unwrap();
         if let Err(err) = fs::create_dir_all(&cache_dir) {
             return Err(io::Error::new(err.kind(), format!("{}\n\
                                                   [User Cache]: Failed to create the parent \
@@ -58,7 +59,6 @@ impl CacheDirOperations for CacheDirImpl {
         }
 
         super::create_dir_helper(&[cache_dir], &cache_name)
-        */
     }
 
     fn create_system_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {
@@ -72,9 +72,16 @@ impl CacheDirOperations for CacheDirImpl {
     }
 
     fn create_tmp_cache_dir(cache_name: &Path)    -> io::Result<PathBuf> {
+        let temp_dir = env::temp_dir();
+
         // We try `/var/tmp` first because the directory is persistent between system restarts
-        super::create_dir_helper(&[PathBuf::from("/var/tmp"), env::temp_dir()],
-                                 &cache_name)
+        if temp_dir.as_os_str().is_empty() {
+            super::create_dir_helper(&[PathBuf::from("/var/tmp")],
+                                     &cache_name)
+        } else {
+            super::create_dir_helper(&[PathBuf::from("/var/tmp"), temp_dir],
+                                     &cache_name)
+        }
     }
 
     fn create_memory_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {

@@ -54,11 +54,11 @@ impl<'a, 'b> CacheDirConfig<'a, 'b> {
     pub fn app_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
         self.app_cache = value;
         if self.app_cache_path.is_none() && self.app_cache {
-            #[cfg(not(windows))]
-            { self.app_cache_path = Some(path::Path::new(".cache")); }
-
-            #[cfg(windows)]
-            { self.app_cache_path = Some(path::Path::new("Cache")); }
+            self.app_cache_path = if cfg!(not(windows)) {
+                Some(path::Path::new(".cache"))
+            } else {
+                Some(path::Path::new("Cache"))
+            };
         }
         self
     }

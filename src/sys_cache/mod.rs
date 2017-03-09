@@ -114,13 +114,16 @@ fn create_dir_helper(dirs: &[path::PathBuf], path: &path::Path) -> io::Result<pa
     // This is a buffer of all the errors(attempts) to create a cache directory.
     // The `PermissionDenied` error will be returned with this buffer only if all the attempts fail
     let mut attempted_paths_error = String::new();
+    let mut last_io_error = io::ErrorKind::NotFound;
     for parent_cache_dir in dirs {
         if !parent_cache_dir.exists() {
+            last_io_error = io::ErrorKind::NotFound;
             attempted_paths_error.push_str(
                 &format!("\n[NotFound]: Parent cache directory does not exist: {}",
                          parent_cache_dir.display()));
         } else {
             if !parent_cache_dir.is_dir() {
+                last_io_error = io::ErrorKind::AlreadyExists;
                 attempted_paths_error.push_str(
                     &format!("\n[AlreadyExists]: Parent cache path is not a directory: {}",
                              parent_cache_dir.display())
@@ -128,6 +131,7 @@ fn create_dir_helper(dirs: &[path::PathBuf], path: &path::Path) -> io::Result<pa
             } else {
                 let final_cache_path = &parent_cache_dir.join(path);
                 if let Err(err) = fs::create_dir_all(&final_cache_path) {
+                    last_io_error = err.kind();
                     attempted_paths_error.push_str(
                         &format!("\n[{:?}]: Failed to create the cache directory: {}",
                                  err.kind(),
@@ -139,8 +143,7 @@ fn create_dir_helper(dirs: &[path::PathBuf], path: &path::Path) -> io::Result<pa
         }
     }
 
-    Err(io::Error::new(io::ErrorKind::PermissionDenied,
-                       attempted_paths_error))
+    Err(io::Error::new(last_io_error, attempted_paths_error))
 }
 
 // Making sure that the `CacheDirOperations` trait was implemented on `CacheDirImpl`
