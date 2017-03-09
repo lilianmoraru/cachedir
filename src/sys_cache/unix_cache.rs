@@ -7,8 +7,14 @@ use std::env;
 use super::{ CacheDirImpl, CacheDirOperations };
 
 impl CacheDirOperations for CacheDirImpl {
-    fn create_user_cache_dir(cache_name: &Path,
-                             parent_dir: Option<&Path>)   -> io::Result<PathBuf> {
+    fn create_app_cache_dir(cache_name:    &Path,
+                            app_cache_dir: &Path) -> io::Result<PathBuf> {
+        unimplemented!()
+    }
+
+    fn create_user_cache_dir(cache_name: &Path)   -> io::Result<PathBuf> {
+        unimplemented!();
+        /*
         // Lets see if we can get the `$HOME` path - it could be missing
         // in a bare-bones `Linux` container or in `Emscripten` - as examples
         let cache_dir: PathBuf;
@@ -52,6 +58,7 @@ impl CacheDirOperations for CacheDirImpl {
         }
 
         super::create_dir_helper(&[cache_dir], &cache_name)
+        */
     }
 
     fn create_system_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {

@@ -20,57 +20,78 @@ impl CacheDir {
 }
 
 pub struct CacheDirConfig<'a, 'b> {
-    cache_name:      &'a path::Path,
-    user_parent_dir: Option<&'b path::Path>,
-    user_cache:      bool,
-    system_cache:    bool,
-    tmp_cache:       bool,
-    memory_cache:    bool,
+    cache_name:     &'a path::Path,
+    app_cache_path: Option<&'b path::Path>,
+    app_cache:      bool,
+    // wasted an hour on this, obsessing about "user" not being 3 characters aligned,
+    // but "usr" is not very clear(for non-Unix users) and does not sound as well when pronouncing it
+    user_cache:     bool,
+    sys_cache:      bool,
+    tmp_cache:      bool,
+    mem_cache:      bool
 }
 
 impl<'a, 'b> CacheDirConfig<'a, 'b> {
     pub fn new<S: AsRef<OsStr> + ?Sized>(cache_name: &'a S) -> CacheDirConfig<'a, 'b> {
         CacheDirConfig {
-            cache_name:      path::Path::new(cache_name),
-            user_parent_dir: None,
-            user_cache:      false,
-            system_cache:    false,
-            tmp_cache:       false,
-            memory_cache:    false,
+            cache_name:     path::Path::new(cache_name),
+            app_cache_path: None,
+            app_cache:      false,
+            user_cache:     false,
+            sys_cache:      false,
+            tmp_cache:      false,
+            mem_cache:      false
         }
     }
 
-    pub fn user_parent_dir(&mut self,
-                           dir_path: Option<&'b path::Path>) -> &mut CacheDirConfig<'a, 'b> {
-        self.user_parent_dir = dir_path;
+    pub fn app_cache_path<S: AsRef<OsStr> + ?Sized>(&mut self,
+                                                    path: &'b S) -> &mut CacheDirConfig<'a, 'b> {
+        self.app_cache_path = Some(path::Path::new(path));
+        self.app_cache      = true;
         self
     }
 
-    pub fn user_cache(&mut self, value: bool)   -> &mut CacheDirConfig<'a, 'b> {
+    pub fn app_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
+        self.app_cache = value;
+        if self.app_cache_path.is_none() && self.app_cache {
+            #[cfg(not(windows))]
+            { self.app_cache_path = Some(path::Path::new(".cache")); }
+
+            #[cfg(windows)]
+            { self.app_cache_path = Some(path::Path::new("Cache")); }
+        }
+        self
+    }
+
+    pub fn user_cache(&mut self, value: bool) -> &mut CacheDirConfig<'a, 'b> {
         self.user_cache = value;
         self
     }
 
-    pub fn system_cache(&mut self, value: bool) -> &mut CacheDirConfig<'a, 'b> {
-        self.system_cache = value;
+    pub fn sys_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
+        self.sys_cache = value;
         self
     }
 
-    pub fn tmp_cache(&mut self, value: bool)    -> &mut CacheDirConfig<'a, 'b> {
+    pub fn tmp_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
         self.tmp_cache = value;
         self
     }
 
-    pub fn memory_cache(&mut self, value: bool) -> &mut CacheDirConfig<'a, 'b> {
-        self.memory_cache = value;
+    pub fn mem_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
+        self.mem_cache = value;
         self
     }
 
     pub fn try_all_caches(&mut self) -> &mut CacheDirConfig<'a, 'b> {
-        self.user_cache   = true;
-        self.system_cache = true;
-        self.tmp_cache    = true;
-        self.memory_cache = true;
+        // We don't use the `app_cache`(with its fallback to ".cache" and "Cache") function
+        // for this one because we assume that the user prefers system-wide directories and because
+        // he might not expect to use an application cache by default, if he didn't ask for it
+        if self.app_cache_path.is_some() { self.app_cache = true };
+        self.user_cache = true;
+        self.sys_cache  = true;
+        self.tmp_cache  = true;
+        self.mem_cache  = true;
         self
     }
 

@@ -7,8 +7,14 @@ use std::env;
 use super::{ CacheDirImpl, CacheDirOperations };
 
 impl CacheDirOperations for CacheDirImpl {
-    fn create_user_cache_dir(cache_name: &Path,
-                             parent_dir: Option<&Path>)   -> io::Result<PathBuf> {
+    fn create_app_cache_dir(cache_name:    &Path,
+                            app_cache_dir: &Path) -> io::Result<PathBuf> {
+        unimplemented!()
+    }
+
+    fn create_user_cache_dir(cache_name: &Path)   -> io::Result<PathBuf> {
+        unimplemented!();
+        /*
         // We try(and fallback to the next if it fails):
         // 1. User-passed `parent_dir`
         // 2. Windows environment variable: %LOCALAPPDATA%
@@ -89,12 +95,12 @@ impl CacheDirOperations for CacheDirImpl {
             );
         }
 
-
         match super::create_dir_helper(&cache_dirs, &cache_name) {
             Ok(result) => Ok(result),
             Err(err)   => Err(io::Error::new(err.kind(),
                                              format!("{}\n{}", errors_buffer, err.description())))
         }
+        */
     }
 
     fn create_system_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {

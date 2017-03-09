@@ -4,8 +4,12 @@ use std::io;
 use super::{ CacheDirImpl, CacheDirOperations };
 
 impl CacheDirOperations for CacheDirImpl {
-    fn create_user_cache_dir(_: &Path,
-                             _:  Option<&Path>) -> io::Result<PathBuf> {
+    fn create_app_cache_dir(_: &Path, _: &Path) -> io::Result<PathBuf> {
+        Err(io::Error::new(io::ErrorKind::NotFound,
+                           "[Application Cache]: This OS is not supported"))
+    }
+
+    fn create_user_cache_dir(_: &Path)   -> io::Result<PathBuf> {
         Err(io::Error::new(io::ErrorKind::NotFound,
                            "[User Cache]: This OS is not supported"))
     }

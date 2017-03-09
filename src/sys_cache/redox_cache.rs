@@ -7,26 +7,34 @@ use std::env;
 use super::{ CacheDirImpl, CacheDirOperations };
 
 impl CacheDirOperations for CacheDirImpl {
-    fn create_user_cache_dir(cache_name: &Path,
-                             parent_dir: Option<&Path>) -> io::Result<PathBuf> {
-        let home_dir = if parent_dir.is_none() {
-            env::home_dir()
-        } else {
-            Some(PathBuf::from(&parent_dir.unwrap()))
-        };
+    fn create_app_cache_dir(cache_name:    &Path,
+                            app_cache_dir: &Path) -> io::Result<PathBuf> {
+        let app_cache_dir = PathBuf::from(app_cache_dir);
+        if let Err(err) = fs::create_dir_all(&app_cache_dir) {
+            return Err(io::Error::new(err.kind(), format!("{}\n\
+                                                  [Application Cache]: Failed to create the parent \
+                                                  cache directory", err.description())));
+        }
 
-        if home_dir.is_none() {
+        super::create_dir_helper(&[app_cache_dir], &cache_name)
+    }
+
+    fn create_user_cache_dir(cache_name: &Path)   -> io::Result<PathBuf> {
+        let cache_dir = env::home_dir()
+                            .and_then(|path| {
+                                if path.as_os_str().is_empty() {
+                                    None
+                                } else {
+                                    Some(path.join(".cache"))
+                                }
+                            });
+
+        if cache_dir.is_none() {
             return Err(io::Error::new(io::ErrorKind::NotFound,
                                       "[User Cache]: Could not obtain user's home directory"));
         }
 
-        // Lets make sure that the parent cache directory exists
-        let cache_dir = if parent_dir.is_none() {
-            { home_dir.unwrap() }.join(".cache")
-        } else {
-            { home_dir.unwrap() }
-        };
-
+        let cache_dir = cache_dir.unwrap();
         if let Err(err) = fs::create_dir_all(&cache_dir) {
             return Err(io::Error::new(err.kind(), format!("{}\n\
                                                   [User Cache]: Failed to create the parent \

@@ -6,19 +6,20 @@ pub fn create_cache_dir(cache_config: &super::CacheDirConfig)
     -> io::Result<path::PathBuf>
 {
     use std::error::Error;
-    let default_config = !cache_config.user_cache
-                         && !cache_config.system_cache
+    let default_config = !cache_config.app_cache
+                         && !cache_config.user_cache
+                         && !cache_config.sys_cache
                          && !cache_config.tmp_cache
-                         && !cache_config.memory_cache;
+                         && !cache_config.mem_cache;
 
     let user_cache = if default_config { true } else { cache_config.user_cache };
 
     let mut last_io_error = io::ErrorKind::NotFound;
     let mut errors_buffer = String::new();
 
-    if user_cache {
-        match CacheDirImpl::create_user_cache_dir(&cache_config.cache_name,
-                                                  cache_config.user_parent_dir) {
+    if cache_config.app_cache && cache_config.app_cache_path.is_some() {
+        match CacheDirImpl::create_app_cache_dir(&cache_config.cache_name,
+                                                 &cache_config.app_cache_path.unwrap()) {
             Ok(result) => return Ok(result),
             Err(err)   => {
                 last_io_error = err.kind();
@@ -27,7 +28,17 @@ pub fn create_cache_dir(cache_config: &super::CacheDirConfig)
         }
     }
 
-    if cache_config.system_cache {
+    if user_cache {
+        match CacheDirImpl::create_user_cache_dir(&cache_config.cache_name) {
+            Ok(result) => return Ok(result),
+            Err(err)   => {
+                last_io_error = err.kind();
+                errors_buffer.push_str(err.description());
+            }
+        }
+    }
+
+    if cache_config.sys_cache {
         match CacheDirImpl::create_system_cache_dir(&cache_config.cache_name) {
             Ok(result) => return Ok(result),
             Err(err)   => {
@@ -47,7 +58,7 @@ pub fn create_cache_dir(cache_config: &super::CacheDirConfig)
         }
     }
 
-    if cache_config.memory_cache {
+    if cache_config.mem_cache {
         match CacheDirImpl::create_memory_cache_dir(&cache_config.cache_name) {
             Ok(result) => return Ok(result),
             Err(err)   => {
@@ -82,10 +93,11 @@ struct CacheDirImpl;
 
 // The functions that should be implemented by all os-specific modules
 trait CacheDirOperations {
-    fn create_user_cache_dir(cache_name: &path::Path,
-                             parent_dir: Option<&path::Path>) -> io::Result<path::PathBuf>;
+    fn create_app_cache_dir(cache_name:    &path::Path,
+                            app_cache_dir: &path::Path) -> io::Result<path::PathBuf>;
+    fn create_user_cache_dir(cache_name:   &path::Path) -> io::Result<path::PathBuf>;
     fn create_system_cache_dir(cache_name: &path::Path) -> io::Result<path::PathBuf>;
-    fn create_tmp_cache_dir(cache_name: &path::Path)    -> io::Result<path::PathBuf>;
+    fn create_tmp_cache_dir(cache_name:    &path::Path) -> io::Result<path::PathBuf>;
     fn create_memory_cache_dir(cache_name: &path::Path) -> io::Result<path::PathBuf>;
 }
 
