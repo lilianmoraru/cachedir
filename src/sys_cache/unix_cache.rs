@@ -11,9 +11,10 @@ impl CacheDirOperations for CacheDirImpl {
                             app_cache_dir: &Path) -> io::Result<PathBuf> {
         let app_cache_dir = PathBuf::from(app_cache_dir);
         if let Err(err) = fs::create_dir_all(&app_cache_dir) {
-            return Err(io::Error::new(err.kind(), format!("{}\n\
-                                                  [Application Cache]: Failed to create the parent \
-                                                  cache directory", err.description())));
+            return Err(io::Error::new(err.kind(),
+                                      format!("{}\n[Application Cache]: Failed to create the \
+                                              parent cache directory: {}",
+                                              err.description(), app_cache_dir.display())));
         }
 
         super::create_dir_helper(&[app_cache_dir], &cache_name)
@@ -53,9 +54,10 @@ impl CacheDirOperations for CacheDirImpl {
         // Lets make sure that the parent cache directory exists
         let cache_dir = cache_dir.unwrap();
         if let Err(err) = fs::create_dir_all(&cache_dir) {
-            return Err(io::Error::new(err.kind(), format!("{}\n\
-                                                  [User Cache]: Failed to create the parent \
-                                                  cache directory", err.description())));
+            return Err(io::Error::new(err.kind(),
+                                      format!("{}\n[User Cache]: Failed to create the \
+                                              parent cache directory: {}",
+                                              err.description(), cache_dir.display())));
         }
 
         super::create_dir_helper(&[cache_dir], &cache_name)
