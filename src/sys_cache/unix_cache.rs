@@ -65,6 +65,10 @@ impl CacheDirOperations for CacheDirImpl {
 
     fn create_system_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {
         if cfg!(not(target_os = "macos")) {
+            if cfg!(target_os = "emscripten") {
+                let _ = fs::create_dir_all("/var/cache");
+            }
+
             super::create_dir_helper(&[PathBuf::from("/var/cache")],
                                      &cache_name)
         } else {
@@ -78,6 +82,10 @@ impl CacheDirOperations for CacheDirImpl {
 
         // We try `/var/tmp` first because the directory is persistent between system restarts
         if temp_dir.as_os_str().is_empty() {
+            if cfg!(target_os = "emscripten") {
+                let _ = fs::create_dir_all("/var/tmp");
+            }
+
             super::create_dir_helper(&[PathBuf::from("/var/tmp")],
                                      &cache_name)
         } else {
@@ -87,7 +95,11 @@ impl CacheDirOperations for CacheDirImpl {
     }
 
     fn create_memory_cache_dir(cache_name: &Path) -> io::Result<PathBuf> {
-        if cfg!(target_os = "linux") {
+        if cfg!(any(target_os = "linux", target_os = "emscripten")) {
+            if cfg!(target_os = "emscripten") {
+                let _ = fs::create_dir_all("/dev/shm");
+            }
+
             super::create_dir_helper(&[PathBuf::from("/dev/shm"), PathBuf::from("/run/shm")],
                                      &cache_name)
         } else {
