@@ -9,7 +9,14 @@ use super::{ CacheDirImpl, CacheDirOperations };
 impl CacheDirOperations for CacheDirImpl {
     fn create_app_cache_dir(cache_name:    &Path,
                             app_cache_dir: &Path) -> io::Result<PathBuf> {
-        let app_cache_dir = PathBuf::from(app_cache_dir);
+        let current_dir = env::current_dir();
+        if let Err(err) = current_dir {
+            return Err(io::Error::new(err.kind(),
+                                      format!("{}\n[Application Cache]: Could not obtain the \
+                                              current directory", err.description())));
+        }
+
+        let app_cache_dir = current_dir.unwrap().join(app_cache_dir.to_path_buf());
         if let Err(err) = fs::create_dir_all(&app_cache_dir) {
             return Err(io::Error::new(err.kind(), format!("{}\n\
                                                   [Application Cache]: Failed to create the parent \
