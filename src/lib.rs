@@ -4,16 +4,16 @@ use std::ffi::OsStr;
 
 // Contains the os-agnostic `create_cache_dir` function
 mod sys_cache;
+mod traits_impls;
 
+pub use traits_impls::*;
+
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct CacheDir {
     path: path::PathBuf
 }
 
 impl CacheDir {
-    pub fn as_path(&self) -> &path::Path {
-        self.path.as_ref()
-    }
-
     pub fn into_path_buf(self) -> path::PathBuf {
         self.path
     }
