@@ -1,6 +1,7 @@
 cachedir
 -
 [![Build Status](https://travis-ci.org/lilianmoraru/cachedir.svg?branch=master)](https://travis-ci.org/lilianmoraru/cachedir)
+[![Build status](https://ci.appveyor.com/api/projects/status/ir02vrt2unxjjqax/branch/master?svg=true)](https://ci.appveyor.com/project/lilianmoraru/cachedir/branch/master)
 
 [Documentation](https://docs.rs/cachedir)
 
@@ -35,3 +36,9 @@ fn main() {
 
 This creates `CacheName` into the user's cache directory.<br/>
 For more information on the types of caches and code examples, please check the [documentation](https://docs.rs/cachedir).
+
+## License
+`cachedir` is distributed under the terms of both the MIT license and the
+Apache License (Version 2.0).
+
+See [LICENSE-APACHE.md](LICENSE-APACHE.md) and [LICENSE-MIT.md](LICENSE-MIT.md) for more details.
