@@ -3,7 +3,7 @@ extern crate cachedir;
 use cachedir::CacheDirConfig;
 
 use std::env;
-use std::path::{ Path, PathBuf };
+use std::path::PathBuf;
 
 #[test]
 #[cfg(any(unix, target_os = "redox"))]
@@ -105,6 +105,8 @@ fn create_tmp_cache() {
 #[test]
 #[cfg(target_os = "linux")]
 fn create_mem_cache() {
+    use std::path::Path;
+
     let dev_shm = Path::new("/dev/shm");
     let run_shm = Path::new("/run/shm");
 
