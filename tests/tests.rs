@@ -48,7 +48,7 @@ fn create_user_cache() {
     fn add_env_path(cache_dirs:    &mut Vec<PathBuf>,
                     env_var:       &str) {
         env::var_os(env_var)
-            .and_then(|path| {
+            .map(|path| {
                 if !path.is_empty() {
                     cache_dirs.push(PathBuf::from(path))
                 }
@@ -59,7 +59,7 @@ fn create_user_cache() {
     add_env_path(&mut cache_dirs, "APPDATA");
 
     env::home_dir()
-        .and_then(|path| {
+        .map(|path| {
             if !path.as_os_str().is_empty() {
                 cache_dirs.push(path.join("Cache"))
             }
