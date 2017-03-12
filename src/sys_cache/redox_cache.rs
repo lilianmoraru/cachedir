@@ -18,9 +18,10 @@ impl CacheDirOperations for CacheDirImpl {
 
         let app_cache_dir = current_dir.unwrap().join(app_cache_dir.to_path_buf());
         if let Err(err) = fs::create_dir_all(&app_cache_dir) {
-            return Err(io::Error::new(err.kind(), format!("{}\n\
-                                                  [Application Cache]: Failed to create the parent \
-                                                  cache directory", err.description())));
+            return Err(io::Error::new(err.kind(),
+                                      format!("{}\n[Application Cache]: Failed to create the \
+                                              parent cache directory: {}",
+                                              err.description(), app_cache_dir.display())));
         }
 
         super::create_dir_helper(&[app_cache_dir], &cache_name)
@@ -58,7 +59,14 @@ impl CacheDirOperations for CacheDirImpl {
     }
 
     fn create_tmp_cache_dir(cache_name: &Path)    -> io::Result<PathBuf> {
-        super::create_dir_helper(&[env::temp_dir()], &cache_name)
+        let temp_dir = env::temp_dir();
+
+        if temp_dir.as_os_str().is_empty() {
+            Err(io::Error::new(io::ErrorKind::NotFound,
+                               "[Tmp Cache]: Could not obtain the temporary directory's path"))
+        } else {
+            super::create_dir_helper(&[temp_dir], &cache_name)
+        }
     }
 
     fn create_memory_cache_dir(_: &Path)          -> io::Result<PathBuf> {
