@@ -41,4 +41,4 @@ For more information on the types of caches and code examples, please check the 
 `cachedir` is distributed under the terms of both the MIT license and the
 Apache License (Version 2.0).
 
-See [LICENSE-APACHE.md](LICENSE-APACHE.md) and [LICENSE-MIT.md](LICENSE-MIT.md) for more details.
+See [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT) for more details.
