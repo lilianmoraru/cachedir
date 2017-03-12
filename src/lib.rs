@@ -313,9 +313,9 @@ use std::ffi::OsStr;
 
 // Contains the os-agnostic `create_cache_dir` function
 mod sys_cache;
-mod traits_impls;
 
-pub use traits_impls::*;
+// Traits implementations for `CacheDir`
+mod traits_impls;
 
 /// This structure holds the [`PathBuf`] returned from [`CacheDirConfig`].
 ///
@@ -365,6 +365,60 @@ impl CacheDir {
     }
 }
 
+/// This structure helps configure the desired behavior when attempting to create
+/// a cache directory and also creates the directory based on that behavior.
+///
+/// `CacheDirConfig` prioritizes the most persistent destinations first and then the locations
+/// that require the least user rights, when attempting to create a cache directory.<br/><br/>
+///
+/// The default behavior is to create a `user cache`(won't attempt other cache options).
+///
+/// If another cache option is passed, then the `user cache` default won't be used any more.
+///
+/// If only [`app_cache_path`] and/or [`app_cache(true)`] is passed, then only the application cache
+/// will be created(there won't be attempts to fallback to other cache options).
+///
+/// Multiple fallbacks can be used by using the [`app_cache_path`], [`app_cache`], [`user_cache`],
+/// [`sys_cache`], [`tmp_cache`], [`mem_cache`] and [`try_all_caches`] functions to configure
+/// the behavior.
+///
+/// The order of attempts looks like this(note that unset cache options are skipped):
+///
+/// 1. Application cache
+///
+/// 2. User cache(**persistent** and **doesn't require** elevated rights)
+///
+/// 3. System-wide cache(**persistent** and **requires** elevated rights)
+///
+/// 4. Tmp cache(**somewhat persistent in /var/tmp** on Unix, **doesn't require** elevated rights)
+///
+/// 5. Memory cache(**not persistent** between system restarts, **doesn't require** elevated rights)
+///
+/// Example: If a user sets [`user_cache(true)`], [`sys_cache(true)`] and [`mem_cache(true)`]
+/// than `CaheDirConfig` will attempt to create a cache directory in the `user_cache`, than, if it
+/// fails(ex: cache directory not found, missing rights, a file with the same name exists, etc...),
+/// it will fall-back to the `sys_cache`, in which case, if this also fails, it will attempt as a
+/// last resort to create a cache directory in the `mem_cache`.
+///
+/// [`app_cache_path`]: struct.CacheDirConfig.html#method.app_cache_path
+/// [`app_cache(true)`]: struct.CacheDirConfig.html#method.app_cache
+/// [`app_cache`]: struct.CacheDirConfig.html#method.app_cache
+/// [`user_cache`]: struct.CacheDirConfig.html#method.user_cache
+/// [`user_cache(true)`]: struct.CacheDirConfig.html#method.user_cache
+/// [`sys_cache`]: struct.CacheDirConfig.html#method.sys_cache
+/// [`sys_cache(true)`]: struct.CacheDirConfig.html#method.sys_cache
+/// [`tmp_cache`]: struct.CacheDirConfig.html#method.tmp_cache
+/// [`mem_cache`]: struct.CacheDirConfig.html#method.mem_cache
+/// [`mem_cache(true)`]: struct.CacheDirConfig.html#method.mem_cache
+/// [`try_all_caches`]: struct.CacheDirConfig.html#method.try_all_caches
+///
+/// # Examples
+/// ```
+/// # use cachedir::CacheDirConfig;
+/// let cache_dir = CacheDirConfig::new("example").get_cache_dir().unwrap();
+/// ```
+/// This will attempt to create the cache directory `example` in the `User Cache`.<br/>
+/// Read [`user_cache`] documentation if you want to find more about the paths used for `User Cache`.
 pub struct CacheDirConfig<'a, 'b> {
     cache_name:     &'a path::Path,
     app_cache_path: Option<&'b path::Path>,
@@ -378,6 +432,21 @@ pub struct CacheDirConfig<'a, 'b> {
 }
 
 impl<'a, 'b> CacheDirConfig<'a, 'b> {
+    /// `cache_name` accepts a path - used to create the cache directory.
+    ///
+    /// If it *does not exist* at the desired location, `CacheDirConfig` will create it when
+    /// calling `get_cache_dir()`, before returning the path to the final cache destination.
+    ///
+    /// If it *already exists* and it is a directory, `get_cache_dir()` will
+    /// return the path to the final cache destination(**note:** in this situation, `CacheDirConfig`
+    /// cannot guarantee that you have access to write in the final destination, it just confirms
+    /// that the cache directory already exists).
+    ///
+    /// # Examples
+    /// ```
+    /// use cachedir::CacheDirConfig;
+    /// let cache_config = CacheDirConfig::new("some/path");
+    /// ```
     pub fn new<S: AsRef<OsStr> + ?Sized>(cache_name: &'a S) -> CacheDirConfig<'a, 'b> {
         CacheDirConfig {
             cache_name:     path::Path::new(cache_name),
@@ -390,6 +459,23 @@ impl<'a, 'b> CacheDirConfig<'a, 'b> {
         }
     }
 
+    /// This function allows to choose a custom path where the cache directory should be created.
+    ///
+    /// If it *does not exist*, `CacheDirConfig` will attempt to create it.
+    ///
+    /// If none of the other cache options are selected, this will be the only directory
+    /// where `CacheDirConfig` will attempt to create the cache directory.
+    ///
+    /// Using this function automatically switches `app_cache` to `true`. It can manually be
+    /// disabled later by calling `app_cache(false)` on this `CacheDirConfig` object.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use cachedir::CacheDirConfig;
+    /// let cache_dir = CacheDirConfig::new("some/path")
+    ///                                .app_cache_path("/application/cache")
+    ///                                .get_cache_dir();
+    /// ```
     pub fn app_cache_path<S: AsRef<OsStr> + ?Sized>(&mut self,
                                                     path: &'b S) -> &mut CacheDirConfig<'a, 'b> {
         self.app_cache_path = Some(path::Path::new(path));
@@ -397,6 +483,28 @@ impl<'a, 'b> CacheDirConfig<'a, 'b> {
         self
     }
 
+    /// This function tells `CacheDirConfig` if it should attempt to create
+    /// an application cache directory.
+    ///
+    /// ### Non-Windows
+    /// If `app_cache_path` is not passed, `CacheDirConfig` will attempt to create the
+    /// application cache based on the *current directory + ".cache"*
+    ///
+    /// If the directory *does not exist*, `CacheDirConfig` will attempt to create it.
+    ///
+    /// ### Windows
+    /// If `app_cache_path` is not passed, `CacheDirConfig` will attempt to create the
+    /// application cache based on the *current directory + "Cache"*
+    ///
+    /// If the directory *does not exist*, `CacheDirConfig` will attempt to create it.
+    ///
+    /// # Examples
+    /// ```
+    /// use cachedir::CacheDirConfig;
+    /// let cache_dir = CacheDirConfig::new("some/path")
+    ///                                .app_cache(true)
+    ///                                .get_cache_dir();
+    /// ```
     pub fn app_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
         self.app_cache = value;
         if self.app_cache_path.is_none() && self.app_cache {
@@ -409,26 +517,181 @@ impl<'a, 'b> CacheDirConfig<'a, 'b> {
         self
     }
 
+    /// This function tells `CacheDirConfig` if it should attempt to create
+    /// a user cache directory.
+    ///
+    /// Note that if none of the cache options are passed, than the default
+    /// is to use the `User Cache`.
+    ///
+    /// ### Unix
+    /// `CacheDirConfig` will attempt to obtain the `HOME` directory of the user.
+    /// If it fails, it will try the next fallback. If a fallback was not configured, it will
+    /// return an `std::io::Error` when calling `get_cache_dir`.<br/>
+    /// An exception is made for `Emscripten` - in this case it will attempt to create `/var/cache`
+    /// as a parent directory for the final cache destination.
+    ///
+    /// If `HOME` was found, than `CacheDirConfig` will attempt to return or
+    /// create(if it is missing) the `.cache` directory from inside the `HOME` directory
+    /// on `non-macOS` systems and `Library/Caches` on `macOS`.
+    ///
+    /// ### Windows
+    /// `CacheDirConfig` will attempt to create the cache directory inside these paths(and
+    /// fallback to the next if it fails):
+    ///
+    /// 1. Windows environment variable: `%LOCALAPPDATA%`
+    ///
+    /// 2. `%APPDATA%`
+    ///
+    /// 3. Rust's `home_dir` which returns `%HOME%` --ifndef--> `%USERPROFILE%`
+    /// --ifndef--> `OS syscall`.<br/>
+    /// Since the user's home directory is not a dedicated cache directory, `CacheDirConfig`
+    /// will attempt to create the `Cache` directory inside it.
+    ///
+    /// If it fails, it will try the next fallback. If a fallback was not configured, it will
+    /// return an `std::io::Error` when calling `get_cache_dir`.
+    ///
+    /// ### Redox
+    /// `CacheDirConfig` will attempt to obtain the `HOME` directory of the user.
+    /// If it fails, it will try the next fallback. If a fallback was not configured, it will
+    /// return an `std::io::Error` when calling `get_cache_dir`.
+    ///
+    /// If `HOME` was found, than `CacheDirConfig` will attempt to return or
+    /// create(if it is missing) the `.cache` directory from inside the `HOME` directory.
+    ///
+    /// # Examples
+    /// ```
+    /// use cachedir::CacheDirConfig;
+    /// let cache_dir = CacheDirConfig::new("some/path")
+    ///                                .user_cache(true)
+    ///                                .get_cache_dir();
+    /// ```
     pub fn user_cache(&mut self, value: bool) -> &mut CacheDirConfig<'a, 'b> {
         self.user_cache = value;
         self
     }
 
+    /// This function tells `CacheDirConfig` if it should attempt to create
+    /// a system-wide cache directory.<br/>
+    /// **Note:** This might require elevated rights(ex: `superuser`, `Admin`...) in the system.
+    ///
+    /// ### Unix(non-macOS)
+    /// `CacheDirConfig` will attempt to create the cache directory inside `/var/cache`
+    /// when calling `get_cache_dir`.
+    ///
+    /// If it fails, it will try the next fallback. If a fallback was not configured, it will
+    /// return an `std::io::Error` when calling `get_cache_dir`.
+    ///
+    /// ### Unix(macOS)
+    /// `CacheDirConfig` will attempt to create the cache directory inside `/Library/Caches`
+    /// when calling `get_cache_dir`.
+    ///
+    /// If it fails, it will try the next fallback. If a fallback was not configured, it will
+    /// return an `std::io::Error` when calling `get_cache_dir`.
+    ///
+    /// ### Windows
+    /// `CacheDirConfig` will attempt to create the cache directory inside `%ProgramData%`
+    /// when calling `get_cache_dir`.
+    ///
+    /// If it fails, it will try the next fallback. If a fallback was not configured, it will
+    /// return an `std::io::Error` when calling `get_cache_dir`.
+    ///
+    /// ### Redox
+    /// Currently not supported
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use cachedir::CacheDirConfig;
+    /// let cache_dir = CacheDirConfig::new("some/path")
+    ///                                .sys_cache(true)
+    ///                                .get_cache_dir();
+    /// ```
     pub fn sys_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
         self.sys_cache = value;
         self
     }
 
+    /// This function tells `CacheDirConfig` if it should attempt to create
+    /// a cache directory inside one of the system's temporary directories.
+    ///
+    /// ### Unix
+    /// `CacheDirConfig` will attempt to create the cache directory in
+    /// 2 locations(will use the second location only if the first one fails):
+    ///
+    /// 1. `/var/tmp`
+    ///
+    /// 2. Rust's `temp_dir` which is usually(not on Android) `/tmp`
+    ///
+    /// `/var/tmp` is preferred because it is more persistent between system restarts.<br/>
+    /// It is usually automatically cleaned every 30 days by the system.
+    ///
+    /// If these fail, `CacheDirConfig` will try the next fallback.
+    /// If a fallback was not configured, it will return an `std::io::Error` when calling
+    /// `get_cache_dir`.
+    ///
+    /// ### Windows and Redox
+    /// `CacheDirConfig` will attempt to create the cache directory inside the `TMP/TEMP` directory.
+    ///
+    /// The `TMP/TEMP` directory is obtained internally by calling Rust's `temp_dir`.
+    ///
+    /// If it fails, it will try the next fallback. If a fallback was not configured, it
+    /// will return `std::io::Error` when calling `get_cache_dir`.
+    ///
+    /// # Examples
+    /// ```
+    /// use cachedir::CacheDirConfig;
+    /// let cache_dir = CacheDirConfig::new("some/path")
+    ///                                .tmp_cache(true)
+    ///                                .get_cache_dir();
+    /// ```
     pub fn tmp_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
         self.tmp_cache = value;
         self
     }
 
+    /// **Linux and Emscripten only(although, it is OK to call the function on any system)**
+    ///
+    /// This function tells `CacheDirConfig` if it should attempt to create a cache directory
+    /// inside one of these paths:
+    ///
+    /// 1. `/dev/shm`
+    ///
+    /// 2. `/run/shm`
+    ///
+    /// If these fail, when calling `get_cache_dir`, it will return an `std::io::Error`.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use cachedir::CacheDirConfig;
+    /// let cache_dir = CacheDirConfig::new("some/path")
+    ///                                .mem_cache(true)
+    ///                                .get_cache_dir();
+    /// ```
     pub fn mem_cache(&mut self, value: bool)  -> &mut CacheDirConfig<'a, 'b> {
         self.mem_cache = value;
         self
     }
 
+    /// This function tells `CacheDirConfig` if it should try to use all the cache fallbacks
+    /// when attempting to create the cache directory.
+    ///
+    /// This does not activate `app_cache` if a path for it was not set.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use cachedir::CacheDirConfig;
+    ///
+    /// // This will not activate the `app_cache`
+    /// let cache_dir1 = CacheDirConfig::new("some/path")
+    ///                                .try_all_caches()
+    ///                                .get_cache_dir();
+    ///
+    /// // This will activate `app_cache`
+    /// let cache_dir2 = CacheDirConfig::new("some/path")
+    ///                                 .app_cache_path("/path/to/app/cache")
+    ///                                 .app_cache(false) // try_all_caches will activate it back
+    ///                                 .try_all_caches()
+    ///                                 .get_cache_dir();
+    /// ```
     pub fn try_all_caches(&mut self) -> &mut CacheDirConfig<'a, 'b> {
         // We don't use the `app_cache`(with its fallback to ".cache" and "Cache") function
         // for this one because we assume that the user prefers system-wide directories and because
@@ -441,6 +704,22 @@ impl<'a, 'b> CacheDirConfig<'a, 'b> {
         self
     }
 
+    /// This creates the cache directory based on the `CacheDirConfig` configurations.
+    ///
+    /// The returned `CacheDir` contains the path to the cache directory.
+    ///
+    /// # Errors
+    /// If the directory could not be created, `std::io::Error` is returned.</br>
+    /// Calling `.kind()` on it will return the last `std::io::ErrorKind`.<br/>
+    /// Calling `.description()` will return the description of all the `CacheDirConfig`
+    /// attempts that failed.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use cachedir::CacheDirConfig;
+    /// let cache_dir = CacheDirConfig::new("some/path")
+    ///                                .get_cache_dir();
+    /// ```
     pub fn get_cache_dir(&self) -> io::Result<CacheDir> {
         match sys_cache::create_cache_dir(&self) {
             Ok(path_buf) => Ok( CacheDir { path: path_buf } ),
