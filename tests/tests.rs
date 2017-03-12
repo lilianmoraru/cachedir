@@ -103,7 +103,7 @@ fn create_tmp_cache() {
 }
 
 #[test]
-#[cfg_attr(not(target_os = "linux"), should_panic)]
+#[cfg(target_os = "linux")]
 fn create_mem_cache() {
     let dev_shm = Path::new("/dev/shm");
     let run_shm = Path::new("/run/shm");

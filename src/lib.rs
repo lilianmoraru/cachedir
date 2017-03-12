@@ -198,7 +198,7 @@
 //! ### Creating a `memory cache`
 //! [`To the top ⤴`]
 //!
-//! ```
+//! ```no_run
 //! use cachedir::CacheDirConfig;
 //! use std::path::PathBuf;
 //!
@@ -248,7 +248,7 @@
 //! ### Using all default fallbacks(with automatic creation of the application cache)
 //! [`To the top ⤴`]
 //!
-//! ```no_run
+//! ```
 //! use cachedir::CacheDirConfig;
 //! use std::path::{ Path, PathBuf };
 //! use std::env::current_dir;
