@@ -5,12 +5,15 @@ cachedir
 
 [Documentation](https://docs.rs/cachedir)
 
----
+Status: `finished`
 
+---
 A Rust library that helps with cache directories creation in a system-agnostic way.
 
 **Note:** even though the crate is at version `0.1`, it should be stable
-and its API is not expected to change soon.
+and its API is not expected to change soon.<br/><br/>
+
+Dual-licensed under MIT or the [UNLICENSE](http://unlicense.org).
 
 ## Usage
 Add this to your `Cargo.toml`:
@@ -36,9 +39,3 @@ fn main() {
 
 This creates `CacheName` into the user's cache directory.<br/>
 For more information on the types of caches and code examples, please check the [documentation](https://docs.rs/cachedir).
-
-## License
-`cachedir` is distributed under the terms of both the MIT license and the
-Apache License (Version 2.0).
-
-See [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT) for more details.

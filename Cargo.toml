@@ -1,8 +1,8 @@
 [package]
 name          = "cachedir"
-version       = "0.1.0"
+version       = "0.1.1"
 authors       = ["Lilian A. Moraru <lilian.moraru90@gmail.com>"]
-license       = "MIT/Apache-2.0"
+license       = "Unlicense/MIT"
 readme        = "README.md"
 homepage      = "https://github.com/lilianmoraru/cachedir"
 repository    = "https://github.com/lilianmoraru/cachedir"
