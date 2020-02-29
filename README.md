@@ -1,4 +1,4 @@
-cachedir
+cachedir(DEPRECATED), please use dirs instead: https://crates.io/crates/dirs
 -
 [![Build Status](https://travis-ci.org/lilianmoraru/cachedir.svg?branch=master)](https://travis-ci.org/lilianmoraru/cachedir)
 [![Build status](https://ci.appveyor.com/api/projects/status/ir02vrt2unxjjqax/branch/master?svg=true)](https://ci.appveyor.com/project/lilianmoraru/cachedir/branch/master)
