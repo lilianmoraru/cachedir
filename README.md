@@ -1,5 +1,18 @@
 cachedir(DEPRECATED), please use dirs instead: https://crates.io/crates/dirs
--
+---
+Replicating the example below, in [`dirs`](https://crates.io/crates/dirs):
+```rust
+let cache_dir = dirs::cache_dir().ok_or(
+    std::io::Error::new(std::io::ErrorKind::Other, "This OS is not supported")
+)?.join("CacheName");
+
+std::fs::create_dir_all(&cache_dir).map_err(|err| {
+    eprintln!("Failed to create cache dir \"{}\": {}", cache_dir.display(), err);
+    err
+})?;
+``` 
+
+---
 [![Build Status](https://travis-ci.org/lilianmoraru/cachedir.svg?branch=master)](https://travis-ci.org/lilianmoraru/cachedir)
 [![Build status](https://ci.appveyor.com/api/projects/status/ir02vrt2unxjjqax/branch/master?svg=true)](https://ci.appveyor.com/project/lilianmoraru/cachedir/branch/master)
 
